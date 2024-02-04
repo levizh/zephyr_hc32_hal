@@ -1,0 +1,4 @@
+name: hal_hc32
+build:
+  cmake: .
+
