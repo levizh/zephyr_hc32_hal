@@ -83,8 +83,8 @@
 
 /*! Parameter valid check for SPI transfer mode */
 #define IS_SPI_TRANS_MD(x)                                                     \
-(   ((x) == SPI_FULL_DUPLEX)                ||                                 \
-    ((x) == SPI_SEND_ONLY))
+(   ((x) == SPI_TRANSMODE_FULLDUPLEX)                ||                                 \
+    ((x) == SPI_TRANSMODE_SENDONLY))
 
 /*! Parameter valid check for SPI master slave mode */
 #define IS_SPI_MASTER_SLAVE(x)                                                 \
@@ -542,7 +542,7 @@ int32_t SPI_StructInit(stc_spi_init_t *pstcSpiInit)
 
     if (NULL != pstcSpiInit) {
         pstcSpiInit->u32WireMode          = SPI_4_WIRE;
-        pstcSpiInit->u32TransMode         = SPI_FULL_DUPLEX;
+        pstcSpiInit->u32TransMode         = SPI_TRANSMODE_FULLDUPLEX;
         pstcSpiInit->u32MasterSlave       = SPI_MASTER;
         pstcSpiInit->u32ModeFaultDetect   = SPI_MD_FAULT_DETECT_DISABLE;
         pstcSpiInit->u32Parity            = SPI_PARITY_INVD;
@@ -913,7 +913,7 @@ int32_t SPI_Trans(CM_SPI_TypeDef *SPIx, const void *pvTxBuf, uint32_t u32TxLen, 
 
     if ((pvTxBuf != NULL) && (u32TxLen != 0U)) {
         u32Flags = READ_REG32_BIT(SPIx->CR1, SPI_CR1_TXMDS);
-        if (u32Flags == SPI_SEND_ONLY) {
+        if (u32Flags == SPI_TRANSMODE_SENDONLY) {
             /* Transmit data in send only mode. */
             i32Ret = SPI_Tx(SPIx, pvTxBuf, u32TxLen, u32Timeout);
         } else {
