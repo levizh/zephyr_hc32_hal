@@ -394,6 +394,37 @@ void GPIO_SetFunc(uint8_t u8Port, uint16_t u16Pin, uint16_t u16Func)
 }
 
 /**
+ * @brief  Get specified Port Pin function
+ * @param  [in] u8Port: GPIO_PORT_x, x can be the suffix in @ref GPIO_Port_Source for each product
+ * @param  [in] u16Pin: GPIO_PIN_x, x can be the suffix in @ref GPIO_Pins_Define for each product
+ * @param  [out] p16func: Point to the store function num data
+ * @retval int32_t:
+ *           - LL_OK: Get function num successful
+ *           - LL_ERR: Invalid pin num
+ */
+int32_t GPIO_GetFunc(uint8_t u8Port, uint16_t u16Pin, uint16_t *p16func)
+{
+    uint8_t u8PinPos;
+    int32_t i32Ret = LL_OK;
+    /* Parameter validity checking */
+    DDL_ASSERT(IS_GPIO_PORT(u8Port));
+    DDL_ASSERT(IS_GPIO_PIN(u16Pin));
+    DDL_ASSERT(IS_GPIO_UNLOCK());
+
+    for (u8PinPos = 0U; u8PinPos < GPIO_PIN_NUM_MAX; u8PinPos++) {
+        if ((u16Pin & 1U) != 0U) {
+            *p16func = (PFSR_REG(u8Port, u8PinPos) & GPIO_PFSR_FSEL);
+        }
+        u16Pin >>= 1U;
+        if (0U == u16Pin) {
+            i32Ret = LL_ERR;
+            break;
+        }
+    }
+    return i32Ret;
+}
+
+/**
  * @brief  GPIO pin sub-function ENABLE.
  * @param  [in] u8Port: GPIO_PORT_x, x can be the suffix in @ref GPIO_Port_Source for each product
  * @param  [in] u16Pin: GPIO_PIN_x, x can be the suffix in @ref GPIO_Pins_Define for each product
@@ -679,7 +710,7 @@ void GPIO_ExtIntCmd(uint8_t u8Port, uint16_t u16Pin, en_functional_state_t enNew
             PCRx = &PCR_REG(u8Port, u8PinPos);
             EIRQCRx = (__IO uint32_t *)((uint32_t)&CM_INTC->EIRQCR0 + 4UL * u8PinPos);
             if (ENABLE == enNewState) {
-                EIRQ_Value = (uint32_t) (*EIRQCRx);
+                EIRQ_Value = (uint32_t)(*EIRQCRx);
                 /*  disable digital filter A */
                 CLR_REG32_BIT(*EIRQCRx, INTC_EIRQCR_EFEN);
                 SET_REG16_BIT(*PCRx, GPIO_PCR_INTE);
