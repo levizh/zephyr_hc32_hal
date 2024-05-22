@@ -40,12 +40,12 @@ extern "C" {
  * Interrupt Number Definition
  ******************************************************************************/
 typedef enum {
-    NMI_IRQn             = -14, /*  2 Non Maskable                            */
+    NonMaskableInt_IRQn             = -14, /*  2 Non Maskable                 */
     HardFault_IRQn       = -13, /*  3 Hard Fault                              */
-    MemManageFault_IRQn  = -12, /*  4 MemManage Fault                         */
+    MemoryManagement_IRQn  = -12, /*  4 MemManage Fault                       */
     BusFault_IRQn        = -11, /*  5 Bus Fault                               */
     UsageFault_IRQn      = -10, /*  6 Usage Fault                             */
-    SVC_IRQn             = -5,  /* 11 SVCall                                  */
+    SVCall_IRQn             = -5,  /* 11 SVCall                               */
     DebugMonitor_IRQn    = -4,  /* 12 DebugMonitor                            */
     PendSV_IRQn          = -2,  /* 14 Pend SV                                 */
     SysTick_IRQn         = -1,  /* 15 System Tick                             */
