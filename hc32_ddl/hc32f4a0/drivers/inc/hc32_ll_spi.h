@@ -124,8 +124,8 @@ typedef struct {
  * @defgroup SPI_Trans_Mode_Define SPI Transfer Mode Define
  * @{
  */
-#define SPI_TRANSMODE_FULLDUPLEX    (0UL)               /*!< Full duplex. */
-#define SPI_TRANSMODE_SENDONLY      (SPI_CR1_TXMDS)     /*!< Send only. */
+#define SPI_FULL_DUPLEX             (0UL)               /*!< Full duplex. */
+#define SPI_SEND_ONLY               (SPI_CR1_TXMDS)     /*!< Send only. */
 /**
  * @}
  */
