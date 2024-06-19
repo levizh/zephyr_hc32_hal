@@ -1,15 +1,15 @@
 /**
  * @file
- * @brief System/hardware module for hc32f460 platform
+ * @brief System/hardware module for hc32f4a0 platform
  *
  * This module provides routines to initialize and support board-level
- * hardware for the hc32f460 platform.
+ * hardware for the hc32f4a0 platform.
  */
 
 /* ---------------------------------------------------------------------------------------*/
 /*  @file:    platform_init.S                                                      */
 /*  @purpose: CMSIS Cortex-M4 Core Device Startup File                                    */
-/*            hc32f460                                                                */
+/*            hc32f4a0                                                                */
 /* ---------------------------------------------------------------------------------------*/
 /* Copyright (C) 2022-2024, Xiaohua Semiconductor Co., Ltd.                               */
 /*****************************************************************************/
