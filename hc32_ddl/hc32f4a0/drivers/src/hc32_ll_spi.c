@@ -85,8 +85,8 @@
 
 /*! Parameter valid check for SPI transfer mode */
 #define IS_SPI_TRANS_MD(x)                                                     \
-(   ((x) == SPI_FULL_DUPLEX)                ||                                 \
-    ((x) == SPI_SEND_ONLY))
+(   ((x) == SPI_TRANSMODE_FULLDUPLEX)                ||                                 \
+    ((x) == SPI_TRANSMODE_SENDONLY))
 
 /*! Parameter valid check for SPI master slave mode */
 #define IS_SPI_MASTER_SLAVE(x)                                                 \
