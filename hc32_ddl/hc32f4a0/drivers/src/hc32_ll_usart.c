@@ -22,9 +22,12 @@
                                     Fix bug: did not enable MP while USART_MultiProcessor_Init()
                                     Re-define IS_USART_SMARTCARD_UNIT
                                     API refined: USART_SetBaudrate()
+   2023-12-15       CDT             Add API USART_GetFuncState()
+   2024-06-30       CDT             Add interfaces for getting USART configuration status
+                                    Add assert for the register bit can only be set when TE=0&RE=0
  @endverbatim
  *******************************************************************************
- * Copyright (C) 2022-2023, Xiaohua Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2022-2024, Xiaohua Semiconductor Co., Ltd. All rights reserved.
  *
  * This software component is licensed by XHSC under BSD 3-Clause license
  * (the "License"); You may not use this file except in compliance with the
@@ -179,6 +182,9 @@ typedef struct {
 #define IS_USART_CLK_DIV(x)             ((x) <= USART_CLK_DIV_MAX)
 
 #define IS_USART_DATA(x)                ((x) <= 0x01FFUL)
+
+#define IS_USART_RX_TX_DISABLE(x)                                              \
+(   ((x)->CR1 & (USART_CR1_RE | USART_CR1_TE)) == 0UL)
 
 /**
  * @defgroup USART_Check_Parameters_Validity_Hardware_Flow_Control USART Check Parameters Validity Hardware Flow Control
@@ -492,7 +498,7 @@ static int32_t UART_CalculateBrr(const CM_USART_TypeDef *USARTx, stc_usart_brr_t
 }
 
 /**
- * @brief  Calculate baudrate division for UART mode.
+ * @brief  Calculate baudrate division for clock-sync mode.
  * @param  [in] USARTx                  Pointer to USART instance register base
  *         This parameter can be one of the following values:
  *           @arg CM_USARTx:            USART unit instance register base
@@ -574,7 +580,7 @@ static int32_t ClockSync_CalculateBrr(const CM_USART_TypeDef *USARTx, stc_usart_
 }
 
 /**
- * @brief  Calculate baudrate division for UART mode.
+ * @brief  Calculate baudrate division for smart-card mode.
  * @param  [in] USARTx                  Pointer to USART instance register base
  *         This parameter can be one of the following values:
  *           @arg CM_USARTx:            USART unit instance register base
@@ -1204,6 +1210,44 @@ void USART_FuncCmd(CM_USART_TypeDef *USARTx, uint32_t u32Func, en_functional_sta
 }
 
 /**
+ * @brief  Get USART Function Status.
+ * @param  [in] USARTx                  Pointer to USART instance register base
+ *         This parameter can be one of the following values:
+ *           @arg CM_USARTx:            USART unit instance register base
+ * @param  [in] u32Func                 USART function type
+ *         This parameter can be any composed value of the macros group @ref USART_Function.
+ * @retval An @ref en_functional_state_t enumeration value.
+ *           - ENABLE: Transmit/Receive/Interrupt active
+ *           - DISABLE: Transmit/Receive/Interrupt inactive
+ * @note   In clock synchronization mode, the bit TE or RE of register USART_CR can only be
+ *         written to 1 when TE = 0 and RE = 0 (transmit and receive disabled)
+ */
+en_functional_state_t USART_GetFuncState(CM_USART_TypeDef *USARTx, uint32_t u32Func)
+{
+    uint32_t u32BaseFunc;
+    en_functional_state_t enNewState = DISABLE;
+
+    DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_FUNC(u32Func));
+    DDL_ASSERT(IS_USART_LIN_FUNC(USARTx, u32Func));
+    DDL_ASSERT(IS_USART_TIMEOUT_FUNC(USARTx, u32Func));
+
+    u32BaseFunc = (u32Func & 0xFFFFUL);
+    if (0UL != u32BaseFunc) {
+        if (0UL != READ_REG32_BIT(USARTx->CR1, u32BaseFunc)) {
+            enNewState = ENABLE;
+        }
+    }
+    u32BaseFunc = u32Func >> USART_LIN_FUNC_OFFSET;
+    if (0UL != u32BaseFunc) {
+        if (0UL != READ_REG32_BIT(USARTx->CR2, u32BaseFunc)) {
+            enNewState = ENABLE;
+        }
+    }
+    return enNewState;
+}
+
+/**
  * @brief  Get USART flag.
  * @param  [in] USARTx                  Pointer to USART instance register base
  *         This parameter can be one of the following values:
@@ -1272,9 +1316,36 @@ void USART_ClearStatus(CM_USART_TypeDef *USARTx, uint32_t u32Flag)
 void USART_SetParity(CM_USART_TypeDef *USARTx, uint32_t u32Parity)
 {
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_PARITY(u32Parity));
 
     MODIFY_REG32(USARTx->CR1, (USART_CR1_PS | USART_CR1_PCE), u32Parity);
+}
+
+/**
+ * @brief  Get USART parity.
+ * @param  [in] USARTx                  Pointer to USART instance register base
+ *         This parameter can be one of the following values:
+ *           @arg CM_USARTx:            USART unit instance register base
+ * @retval This parameter can be one of the macros group @ref USART_Parity_Control
+ *           @arg USART_PARITY_NONE:    Parity control disabled
+ *           @arg USART_PARITY_ODD:     Parity control enabled and Odd Parity is selected
+ *           @arg USART_PARITY_EVEN:    Parity control enabled and Even Parity is selected
+ *  None
+ */
+uint32_t USART_GetParity(CM_USART_TypeDef *USARTx)
+{
+    DDL_ASSERT(IS_USART_UNIT(USARTx));
+
+    if (0U == READ_REG32_BIT(USARTx->CR1, USART_CR1_PCE)) {
+        return USART_PARITY_NONE;
+    }
+
+    if (0U == READ_REG32_BIT(USARTx->CR1, USART_CR1_PS)) {
+        return USART_PARITY_EVEN;
+    } else {
+        return USART_PARITY_ODD;
+    }
 }
 
 /**
@@ -1291,6 +1362,7 @@ void USART_SetParity(CM_USART_TypeDef *USARTx, uint32_t u32Parity)
 void USART_SetFirstBit(CM_USART_TypeDef *USARTx, uint32_t u32FirstBit)
 {
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_FIRST_BIT(u32FirstBit));
 
     MODIFY_REG32(USARTx->CR1, USART_CR1_ML, u32FirstBit);
@@ -1316,6 +1388,22 @@ void USART_SetStopBit(CM_USART_TypeDef *USARTx, uint32_t u32StopBit)
 }
 
 /**
+ * @brief  Get USART stop bit.
+ * @param  [in] USARTx                  Pointer to USART instance register base
+ *         This parameter can be one of the following values:
+ *           @arg CM_USARTx:            USART unit instance register base
+ * @retval This parameter can be one of the macros group @ref USART_Stop_Bit
+ *           @arg USART_STOPBIT_1BIT:   1 stop bit
+ *           @arg USART_STOPBIT_2BIT:   2 stop bits
+ */
+uint32_t USART_GetStopBit(CM_USART_TypeDef *USARTx)
+{
+    DDL_ASSERT(IS_USART_UNIT(USARTx));
+
+    return READ_REG32_BIT(USARTx->CR2, USART_CR2_STOP);
+}
+
+/**
  * @brief  Set USART data width.
  * @param  [in] USARTx                  Pointer to USART instance register base
  *         This parameter can be one of the following values:
@@ -1329,9 +1417,26 @@ void USART_SetStopBit(CM_USART_TypeDef *USARTx, uint32_t u32StopBit)
 void USART_SetDataWidth(CM_USART_TypeDef *USARTx, uint32_t u32DataWidth)
 {
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_DATA_WIDTH(u32DataWidth));
 
     MODIFY_REG32(USARTx->CR1, USART_CR1_M, u32DataWidth);
+}
+
+/**
+ * @brief  Get USART data width.
+ * @param  [in] USARTx                  Pointer to USART instance register base
+ *         This parameter can be one of the following values:
+ *           @arg CM_USARTx:            USART unit instance register base
+ * @retval This parameter can be one of the macros group @ref USART_Data_Width_Bit
+ *           @arg USART_DATA_WIDTH_8BIT: 8 bits word width
+ *           @arg USART_DATA_WIDTH_9BIT: 9 bits word width
+ */
+uint32_t USART_GetDataWidth(CM_USART_TypeDef *USARTx)
+{
+    DDL_ASSERT(IS_USART_UNIT(USARTx));
+
+    return READ_REG32_BIT(USARTx->CR1, USART_CR1_M);
 }
 
 /**
@@ -1348,6 +1453,7 @@ void USART_SetDataWidth(CM_USART_TypeDef *USARTx, uint32_t u32DataWidth)
 void USART_SetOverSampleBit(CM_USART_TypeDef *USARTx, uint32_t u32OverSampleBit)
 {
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_OVER_SAMPLE_BIT(u32OverSampleBit));
 
     MODIFY_REG32(USARTx->CR1, USART_CR1_OVER8, u32OverSampleBit);
@@ -1367,6 +1473,7 @@ void USART_SetOverSampleBit(CM_USART_TypeDef *USARTx, uint32_t u32OverSampleBit)
 void USART_SetStartBitPolarity(CM_USART_TypeDef *USARTx, uint32_t u32Polarity)
 {
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_START_BIT_POLARITY(u32Polarity));
 
     MODIFY_REG32(USARTx->CR1, USART_CR1_SBS, u32Polarity);
@@ -1404,6 +1511,7 @@ void USART_SetTransType(CM_USART_TypeDef *USARTx, uint16_t u16Type)
 void USART_SetClockDiv(CM_USART_TypeDef *USARTx, uint32_t u32ClockDiv)
 {
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_CLK_DIV(u32ClockDiv));
 
     MODIFY_REG32(USARTx->PR, USART_PR_PSC, u32ClockDiv);
@@ -1438,6 +1546,7 @@ uint32_t USART_GetClockDiv(const CM_USART_TypeDef *USARTx)
 void USART_SetClockSrc(CM_USART_TypeDef *USARTx, uint32_t u32ClockSrc)
 {
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_CLK_SRC(u32ClockSrc));
 
     MODIFY_REG32(USARTx->CR2, USART_CR2_CLKC_1, u32ClockSrc);
@@ -1470,6 +1579,7 @@ uint32_t USART_GetClockSrc(const CM_USART_TypeDef *USARTx)
 void USART_FilterCmd(CM_USART_TypeDef *USARTx, en_functional_state_t enNewState)
 {
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_FUNCTIONAL_STATE(enNewState));
 
     if (ENABLE == enNewState) {
@@ -1511,9 +1621,40 @@ void USART_SilenceCmd(CM_USART_TypeDef *USARTx, en_functional_state_t enNewState
 void USART_SetHWFlowControl(CM_USART_TypeDef *USARTx, uint32_t u32HWFlowControl)
 {
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_HW_FLOWCTRL(u32HWFlowControl));
 
     MODIFY_REG32(USARTx->CR3, (USART_CR3_CTSE | USART_CR3_RTSE), u32HWFlowControl);
+}
+
+/**
+ * @brief  Get UART hardware flow control CTS/RTS selection.
+ * @param  [in] USARTx                  Pointer to USART instance register base
+ *         This parameter can be one of the following values:
+ *           @arg CM_USARTx:            USART unit instance register base
+ * @retval This parameter can be one of the macros group @ref USART_Hardware_Flow_Control.
+ */
+uint32_t USART_GetHWFlowControl(CM_USART_TypeDef *USARTx)
+{
+    uint32_t ret;
+
+    DDL_ASSERT(IS_USART_UNIT(USARTx));
+
+    switch ((READ_REG32(USARTx->CR3) & (USART_CR3_CTSE | USART_CR3_RTSE))) {
+        case USART_CR3_RTSE:
+            ret = USART_HW_FLOWCTRL_RTS;
+            break;
+        case USART_CR3_CTSE:
+            ret = USART_HW_FLOWCTRL_CTS;
+            break;
+        case (USART_CR3_RTSE | USART_CR3_CTSE):
+            ret = USART_HW_FLOWCTRL_RTS_CTS;
+            break;
+        default:
+            ret = USART_HW_FLOWCTRL_NONE;
+            break;
+    } ;
+    return ret;
 }
 
 /**
@@ -1582,6 +1723,7 @@ int32_t USART_SetBaudrate(CM_USART_TypeDef *USARTx, uint32_t u32Baudrate, float3
 
     DDL_ASSERT(u32Baudrate > 0UL);
     DDL_ASSERT(IS_USART_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
 
     /* Get USART clock frequency */
     stcUsartBrr.u32UsartClock = USART_GetUsartClockFreq(USARTx);
@@ -1640,6 +1782,7 @@ int32_t USART_SetBaudrate(CM_USART_TypeDef *USARTx, uint32_t u32Baudrate, float3
 void USART_SmartCard_SetEtuClock(CM_USART_TypeDef *USARTx, uint32_t u32EtuClock)
 {
     DDL_ASSERT(IS_USART_SMARTCARD_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_SMARTCARD_ETU_CLK(u32EtuClock));
 
     MODIFY_REG32(USARTx->CR3, USART_CR3_BCN, u32EtuClock);
@@ -1697,6 +1840,7 @@ void USART_SetStopModeNoiseFilter(const CM_USART_TypeDef *USARTx, uint32_t u32Le
 void USART_LIN_LoopbackCmd(CM_USART_TypeDef *USARTx, en_functional_state_t enNewState)
 {
     DDL_ASSERT(IS_USART_LIN_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_FUNCTIONAL_STATE(enNewState));
 
     if (ENABLE == enNewState) {
@@ -1723,6 +1867,7 @@ void USART_LIN_LoopbackCmd(CM_USART_TypeDef *USARTx, en_functional_state_t enNew
 void USART_LIN_SetBmcClockDiv(CM_USART_TypeDef *USARTx, uint32_t u32ClockDiv)
 {
     DDL_ASSERT(IS_USART_LIN_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_LIN_BMC_CLK_DIV(u32ClockDiv));
 
     MODIFY_REG32(USARTx->PR, USART_PR_LBMPSC, u32ClockDiv);
@@ -1770,6 +1915,7 @@ en_flag_status_t USART_LIN_GetRequestBreakStatus(const CM_USART_TypeDef *USARTx)
 void USART_LIN_SetBreakMode(CM_USART_TypeDef *USARTx, uint32_t u32Mode)
 {
     DDL_ASSERT(IS_USART_LIN_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_LIN_SEND_BREAK_MD(u32Mode));
 
     MODIFY_REG32(USARTx->CR2, USART_CR2_SBKM, u32Mode);
@@ -1839,6 +1985,7 @@ uint32_t USART_LIN_GetMeasureBaudrate(const CM_USART_TypeDef *USARTx)
 void USART_LIN_SetDetectBreakLen(CM_USART_TypeDef *USARTx, uint32_t u32Len)
 {
     DDL_ASSERT(IS_USART_LIN_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_LIN_DETECT_BREAK_LEN(u32Len));
 
     MODIFY_REG32(USARTx->CR2, USART_CR2_LBDL, u32Len);
@@ -1860,6 +2007,7 @@ void USART_LIN_SetDetectBreakLen(CM_USART_TypeDef *USARTx, uint32_t u32Len)
 void USART_LIN_SetSendBreakLen(CM_USART_TypeDef *USARTx, uint32_t u32Len)
 {
     DDL_ASSERT(IS_USART_LIN_UNIT(USARTx));
+    DDL_ASSERT(IS_USART_RX_TX_DISABLE(USARTx));
     DDL_ASSERT(IS_USART_LIN_SEND_BREAK_LEN(u32Len));
 
     MODIFY_REG32(USARTx->CR2, USART_CR2_SBKL, u32Len);

@@ -13,9 +13,11 @@
                                     Modify USART_SC_ETU_CLK128/256 value
                                     Modify return type of function USART_DeInit
    2023-09-30       CDT             Remove u32StopBit param from stc_usart_smartcard_init_t structure
+   2023-12-15       CDT             Add the declaration of API USART_GetFuncState()
+   2024-06-30       CDT             Add interfaces for getting USART configuration status
  @endverbatim
  *******************************************************************************
- * Copyright (C) 2022-2023, Xiaohua Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2022-2024, Xiaohua Semiconductor Co., Ltd. All rights reserved.
  *
  * This software component is licensed by XHSC under BSD 3-Clause license
  * (the "License"); You may not use this file except in compliance with the
@@ -470,12 +472,16 @@ int32_t USART_SmartCard_Init(CM_USART_TypeDef *USARTx,
 
 int32_t USART_DeInit(CM_USART_TypeDef *USARTx);
 void USART_FuncCmd(CM_USART_TypeDef *USARTx, uint32_t u32Func, en_functional_state_t enNewState);
+en_functional_state_t USART_GetFuncState(CM_USART_TypeDef *USARTx, uint32_t u32Func);
 en_flag_status_t USART_GetStatus(const CM_USART_TypeDef *USARTx, uint32_t u32Flag);
 void USART_ClearStatus(CM_USART_TypeDef *USARTx, uint32_t u32Flag);
 void USART_SetParity(CM_USART_TypeDef *USARTx, uint32_t u32Parity);
+uint32_t USART_GetParity(CM_USART_TypeDef *USARTx);
 void USART_SetFirstBit(CM_USART_TypeDef *USARTx, uint32_t u32FirstBit);
 void USART_SetStopBit(CM_USART_TypeDef *USARTx, uint32_t u32StopBit);
+uint32_t USART_GetStopBit(CM_USART_TypeDef *USARTx);
 void USART_SetDataWidth(CM_USART_TypeDef *USARTx, uint32_t u32DataWidth);
+uint32_t USART_GetDataWidth(CM_USART_TypeDef *USARTx);
 void USART_SetOverSampleBit(CM_USART_TypeDef *USARTx, uint32_t u32OverSampleBit);
 void USART_SetStartBitPolarity(CM_USART_TypeDef *USARTx, uint32_t u32Polarity);
 void USART_SetTransType(CM_USART_TypeDef *USARTx, uint16_t u16Type);
@@ -486,6 +492,7 @@ uint32_t USART_GetClockSrc(const CM_USART_TypeDef *USARTx);
 void USART_FilterCmd(CM_USART_TypeDef *USARTx, en_functional_state_t enNewState);
 void USART_SilenceCmd(CM_USART_TypeDef *USARTx, en_functional_state_t enNewState);
 void USART_SetHWFlowControl(CM_USART_TypeDef *USARTx, uint32_t u32HWFlowControl);
+uint32_t USART_GetHWFlowControl(CM_USART_TypeDef *USARTx);
 uint16_t USART_ReadData(const CM_USART_TypeDef *USARTx);
 void USART_WriteData(CM_USART_TypeDef *USARTx, uint16_t u16Data);
 void USART_WriteID(CM_USART_TypeDef *USARTx, uint16_t u16ID);
