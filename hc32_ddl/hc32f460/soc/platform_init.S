@@ -11,7 +11,7 @@
 /*  @purpose: CMSIS Cortex-M4 Core Device Startup File                                    */
 /*            hc32f460                                                                */
 /* ---------------------------------------------------------------------------------------*/
-/* Copyright (C) 2022-2024, Xiaohua Semiconductor Co., Ltd.                               */
+/* Copyright (C) 2024-2025, Xiaohua Semiconductor Co., Ltd.                               */
 /*****************************************************************************/
 /* Version: GCC for ARM Embedded Processors                                  */
 /*****************************************************************************/

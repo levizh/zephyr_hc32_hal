@@ -1,15 +1,15 @@
 /**
  * @file
- * @brief System/hardware module for hc32f4a0 platform
+ * @brief System/hardware module for hc32f460 platform
  *
  * This module provides routines to initialize and support board-level
- * hardware for the hc32f4a0 platform.
+ * hardware for the hc32f460 platform.
  */
 
 /* ---------------------------------------------------------------------------------------*/
 /*  @file:    platform_init.S                                                      */
 /*  @purpose: CMSIS Cortex-M4 Core Device Startup File                                    */
-/*            hc32f4a0                                                                */
+/*            hc32f460                                                                */
 /* ---------------------------------------------------------------------------------------*/
 /* Copyright (C) 2024-2025, Xiaohua Semiconductor Co., Ltd.                               */
 /*****************************************************************************/
@@ -21,18 +21,36 @@
 #include <zephyr/arch/cpu.h>
 
 
-#if defined(CONFIG_PLATFORM_SPECIFIC_INIT) && defined(CONFIG_SOC_HC32F4A0)
+#if defined(CONFIG_SOC_RESET_HOOK) && defined(CONFIG_SOC_HC32F460)
 
     .syntax unified
     .arch armv7-m
     .text
     .thumb
 
-GTEXT(z_arm_platform_init)
-SECTION_FUNC(TEXT,z_arm_platform_init)
+GTEXT(soc_reset_hook)
+SECTION_FUNC(TEXT,soc_reset_hook)
 
-ClearSramSR:
-    LDR     R0, =0x40050810
-	LDR     R1, =0x1FF
-	STR     R1, [R0]
+/* sram3 must set wait cycles is 1 */
+SetSRAM3Wait:
+    ldr         r0, =0x40050804
+    mov         r1, #0x77
+    str         r1, [r0]
+
+    ldr         r0, =0x4005080C
+    mov         r1, #0x77
+    str         r1, [r0]
+
+    ldr         r0, =0x40050800
+    mov         r1, #0x1100
+    str         r1, [r0]
+
+    ldr         r0, =0x40050804
+    mov         r1, #0x76
+    str         r1, [r0]
+
+    ldr         r0, =0x4005080C
+    mov         r1, #0x76
+    str         r1, [r0]
+	bx          lr
 #endif

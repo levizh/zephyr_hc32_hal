@@ -4,7 +4,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 zephyr_sources(soc/system_hc32f460.c)
+if(HWMv1)
 zephyr_sources(soc/platform_init.S)
+elseif(HWMv2)
+zephyr_sources(soc/reset_hook.S)
+endif()
 
 zephyr_sources(drivers/src/hc32_ll.c)
 zephyr_sources(drivers/src/hc32_ll_icg.c)

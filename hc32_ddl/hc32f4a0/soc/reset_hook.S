@@ -7,7 +7,7 @@
  */
 
 /* ---------------------------------------------------------------------------------------*/
-/*  @file:    platform_init.S                                                      */
+/*  @file:    reset_hook.S                                                      */
 /*  @purpose: CMSIS Cortex-M4 Core Device Startup File                                    */
 /*            hc32f4a0                                                                */
 /* ---------------------------------------------------------------------------------------*/
@@ -21,15 +21,15 @@
 #include <zephyr/arch/cpu.h>
 
 
-#if defined(CONFIG_PLATFORM_SPECIFIC_INIT) && defined(CONFIG_SOC_HC32F4A0)
+#if defined(CONFIG_SOC_RESET_HOOK) && defined(CONFIG_SOC_HC32F4A0)
 
     .syntax unified
     .arch armv7-m
     .text
     .thumb
 
-GTEXT(z_arm_platform_init)
-SECTION_FUNC(TEXT,z_arm_platform_init)
+GTEXT(soc_reset_hook)
+SECTION_FUNC(TEXT,soc_reset_hook)
 
 ClearSramSR:
     LDR     R0, =0x40050810
