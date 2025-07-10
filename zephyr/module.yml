@@ -1,4 +1,4 @@
-name: hal_hc32
+name: hal_xhsc
 build:
   cmake: .
 
